@@ -1,9 +1,0 @@
-node_id,name,type,location
-N1,Supplier Tokyo,Supplier,"Tokyo, Japan"
-N2,Supplier Shenzhen,Supplier,"Shenzhen, China"
-N3,Factory Berlin,Factory,"Berlin, Germany"
-N4,Factory Warsaw,Factory,"Warsaw, Poland"
-N5,Warehouse Toronto,Warehouse,"Toronto, Canada"
-N6,Warehouse Chicago,Warehouse,"Chicago, USA"
-N7,Retailer São Paulo,Retailer,"São Paulo, Brazil"
-N8,Retailer Buenos Aires,Retailer,"Buenos Aires, Argentina"
