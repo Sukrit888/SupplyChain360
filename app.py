@@ -1,17 +1,18 @@
-
 import streamlit as st
 import pandas as pd
 import networkx as nx
 import matplotlib.pyplot as plt
+import random
 
 st.set_page_config(page_title="SupplyChain360", layout="wide")
-
 st.title("🌍 SupplyChain360 Dashboard")
 st.markdown("Visualize and optimize your global supply chain operations in real-time.")
 
-# Sidebar
+# Sidebar Controls
 st.sidebar.header("🔧 Controls")
 show_graph = st.sidebar.checkbox("Show Supply Chain Network", value=True)
+opt_mode = st.sidebar.radio("Optimize for", ["Cost", "Time"], index=0)
+inject_delay = st.sidebar.checkbox("Inject Random Delays", value=False)
 
 # Load data
 nodes_df = pd.read_csv("data/global_supply_chain_nodes.csv")
@@ -57,7 +58,7 @@ if show_graph:
 # Shipment Simulation
 st.subheader("🚚 Shipment Path Simulation")
 
-# --- Filter source and target nodes ---
+# Select nodes
 suppliers = nodes_df[nodes_df["type"] == "Supplier"]["node_id"].tolist()
 retailers = nodes_df[nodes_df["type"] == "Retailer"]["node_id"].tolist()
 
@@ -67,61 +68,77 @@ with col1:
 with col2:
     target_node = st.selectbox("Select Retailer", retailers, index=0)
 
-# --- Find all paths ---
+# Initialize result variables
+best_path = []
+best_cost = 0
+best_time = 0
+delays_included = False
+
+# Run simulation
 try:
     all_paths = list(nx.all_simple_paths(G, source=source_node, target=target_node))
     if not all_paths:
         st.warning("No shipment path found between the selected nodes.")
     else:
-        # Evaluate all paths and pick the best (shortest by cost)
         def calculate_metrics(path):
             total_cost = 0
             total_time = 0
             for i in range(len(path) - 1):
-                edge_data = G.get_edge_data(path[i], path[i+1])
+                edge_data = G.get_edge_data(path[i], path[i + 1])
+                delay = random.randint(1, 5) if inject_delay else 0
                 total_cost += edge_data["cost"]
-                total_time += edge_data["time"]
+                total_time += edge_data["time"] + delay
             return total_cost, total_time
 
-        best_path = min(all_paths, key=lambda p: calculate_metrics(p)[0])
+        # Select best path based on chosen mode
+        if opt_mode == "Cost":
+            best_path = min(all_paths, key=lambda p: calculate_metrics(p)[0])
+        else:
+            best_path = min(all_paths, key=lambda p: calculate_metrics(p)[1])
+
         best_cost, best_time = calculate_metrics(best_path)
+        delays_included = inject_delay
 
         st.success(f"📍 Best Path: {' → '.join(best_path)}")
         st.info(f"💰 Total Cost: ${best_cost} | ⏱️ Total Time: {best_time} hrs")
+        if inject_delay:
+            st.warning("⚠️ Random delays injected into time calculation.")
 
 except nx.NetworkXNoPath:
     st.error("❌ No available shipment route between selected nodes.")
 
-
-# --- KPI Dashboard ---
+# KPI Dashboard
 st.subheader("📊 KPI Dashboard")
 
-# Initialize session state for simulations
 if "simulation_history" not in st.session_state:
     st.session_state.simulation_history = []
 
-# Record the current simulation
 if best_path:
     st.session_state.simulation_history.append({
         "source": source_node,
         "target": target_node,
         "path": best_path,
         "cost": best_cost,
-        "time": best_time
+        "time": best_time,
+        "delayed": delays_included
     })
 
-# Display KPIs
 history = st.session_state.simulation_history
 if history:
     avg_cost = sum(h["cost"] for h in history) / len(history)
     avg_time = sum(h["time"] for h in history) / len(history)
     most_efficient = min(history, key=lambda h: h["cost"])
+    delay_count = sum(1 for h in history if h["delayed"])
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     col1.metric("📦 Total Simulations", len(history))
     col2.metric("💰 Avg. Cost", f"${avg_cost:.2f}")
     col3.metric("⏱️ Avg. Time", f"{avg_time:.1f} hrs")
+    col4.metric("⚠️ Delayed Shipments", delay_count)
 
-    st.success(f"🥇 Most Efficient Path: {most_efficient['source']} → {most_efficient['target']} via {' → '.join(most_efficient['path'])}")
+    st.success(
+        f"🥇 Most Efficient Path: {most_efficient['source']} → {most_efficient['target']} "
+        f"via {' → '.join(most_efficient['path'])}"
+    )
 else:
     st.info("No simulations yet. Run a shipment to generate KPIs.")
