@@ -8,17 +8,14 @@ st.set_page_config(page_title="SupplyChain360", layout="wide")
 st.title("🌍 SupplyChain360 Dashboard")
 st.markdown("Visualize and optimize your global supply chain operations in real-time.")
 
-# Sidebar Controls
 st.sidebar.header("🔧 Controls")
 show_graph = st.sidebar.checkbox("Show Supply Chain Network", value=True)
 opt_mode = st.sidebar.radio("Optimize for", ["Cost", "Time"], index=0)
 inject_delay = st.sidebar.checkbox("Inject Random Delays", value=False)
 
-# Load data
 nodes_df = pd.read_csv("data/global_supply_chain_nodes.csv")
 edges_df = pd.read_csv("data/global_supply_chain_edges.csv")
 
-# Build graph
 G = nx.DiGraph()
 for _, row in nodes_df.iterrows():
     G.add_node(row["node_id"], label=row["name"], type=row["type"], location=row["location"])
@@ -30,7 +27,6 @@ for _, row in edges_df.iterrows():
         cost=row["cost_usd"]
     )
 
-# Show Graph
 if show_graph:
     st.subheader("🗺️ Global Supply Chain Network")
     pos = nx.spring_layout(G, seed=42)
@@ -55,10 +51,8 @@ if show_graph:
     ax.axis("off")
     st.pyplot(fig)
 
-# Shipment Simulation
 st.subheader("🚚 Shipment Path Simulation")
 
-# Select nodes
 suppliers = nodes_df[nodes_df["type"] == "Supplier"]["node_id"].tolist()
 retailers = nodes_df[nodes_df["type"] == "Retailer"]["node_id"].tolist()
 
@@ -68,13 +62,11 @@ with col1:
 with col2:
     target_node = st.selectbox("Select Retailer", retailers, index=0)
 
-# Initialize result variables
 best_path = []
 best_cost = 0
 best_time = 0
 delays_included = False
 
-# Run simulation
 try:
     all_paths = list(nx.all_simple_paths(G, source=source_node, target=target_node))
     if not all_paths:
@@ -90,7 +82,7 @@ try:
                 total_time += edge_data["time"] + delay
             return total_cost, total_time
 
-        # Select best path based on chosen mode
+    
         if opt_mode == "Cost":
             best_path = min(all_paths, key=lambda p: calculate_metrics(p)[0])
         else:
@@ -107,7 +99,6 @@ try:
 except nx.NetworkXNoPath:
     st.error("❌ No available shipment route between selected nodes.")
 
-# KPI Dashboard
 st.subheader("📊 KPI Dashboard")
 
 if "simulation_history" not in st.session_state:
