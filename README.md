@@ -1,5 +1,3 @@
-![SupplyChain360]("C:\Users\6sukr\Downloads\supplychain360_banner.png")
-
 # 🌍 SupplyChain360
 
 **SupplyChain360** is a visual simulation tool for global supply chain optimization.  
